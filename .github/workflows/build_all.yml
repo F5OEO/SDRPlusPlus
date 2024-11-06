@@ -534,7 +534,7 @@ jobs:
               path: ${{runner.workspace}}/sdrpp.apk
 
     create_full_archive:
-        needs: ['build_windows', 'build_macos_intel', 'build_macos_arm', 'build_debian_buster', 'build_debian_bullseye', 'build_debian_bookworm', 'build_debian_sid', 'build_fedora_40', 'build_ubuntu_focal', 'build_ubuntu_jammy', 'build_ubuntu_oracular', 'build_ubuntu_noble', 'build_android']
+        needs: ['build_windows', 'build_macos_intel', 'build_macos_arm', 'build_debian_buster', 'build_debian_bullseye', 'build_debian_bookworm', 'build_debian_sid', 'build_ubuntu_focal', 'build_ubuntu_jammy', 'build_ubuntu_noble']
         runs-on: ubuntu-latest
 
         steps:
@@ -554,12 +554,10 @@ jobs:
             mv sdrpp_debian_bookworm_amd64/sdrpp_debian_amd64.deb sdrpp_all/sdrpp_debian_bookworm_amd64.deb && 
             mv sdrpp_debian_bookworm_aarch64/sdrpp_debian_amd64.deb sdrpp_all/sdrpp_debian_bookworm_aarch64.deb && 
             mv sdrpp_debian_sid_amd64/sdrpp_debian_amd64.deb sdrpp_all/sdrpp_debian_sid_amd64.deb && 
-            mv sdrpp_fedora_40_x86_64/sdrpp-1.2.0.$GITHUB_RUN_NUMBER-1.x86_64.rpm sdrpp_all/sdrpp_fedora_40_x86_64.rpm && 
             mv sdrpp_ubuntu_focal_amd64/sdrpp_debian_amd64.deb sdrpp_all/sdrpp_ubuntu_focal_amd64.deb && 
             mv sdrpp_ubuntu_jammy_amd64/sdrpp_debian_amd64.deb sdrpp_all/sdrpp_ubuntu_jammy_amd64.deb && 
-            mv sdrpp_ubuntu_oracular_amd64/sdrpp_debian_amd64.deb sdrpp_all/sdrpp_ubuntu_oracular_amd64.deb && 
             mv sdrpp_ubuntu_noble_amd64/sdrpp_debian_amd64.deb sdrpp_all/sdrpp_ubuntu_noble_amd64.deb && 
-            mv sdrpp_android/sdrpp.apk sdrpp_all/
+            
 
         - uses: actions/upload-artifact@v4
           with:
