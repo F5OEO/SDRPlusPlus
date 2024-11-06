@@ -1,17 +1,24 @@
 name: Build Binaries
 
 on:
-    push:
-        branches-ignore:
-        - nightly
-    pull_request:
-        branches-ignore:
-        - nightly
-
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+      version:
+        description: 'Provide release tag, eg. 0.5.4'
+        type: string
+        required: true
+    
 env:
-    # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-    BUILD_TYPE: Release
-    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  VERSION: ${{ inputs.version }}
 
 jobs:
     build_windows:
