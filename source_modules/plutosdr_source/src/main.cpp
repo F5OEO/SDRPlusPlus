@@ -551,8 +551,8 @@ private:
         // Allocate buffer
         iio_device_set_kernel_buffers_count(_this->dev, nbkernel);
         
-        flog::info("PlutoSDRSourceModule '{0}': Allocate {1} kernel buffers", _this->name, nbkernel);
-        flog::info("PlutoSDRSourceModule '{0}': Allocate buffer size", _this->name, blockSize);
+       // flog::info("PlutoSDRSourceModule '{0}': Allocate {1} kernel buffers", _this->name, nbkernel);
+       // flog::info("PlutoSDRSourceModule '{0}': Allocate buffer size", _this->name, blockSize);
         iio_buffer* rxbuf = iio_device_create_buffer(_this->dev, blockSize, false);
         // SetBUfferSize seems not working
         //_this->stream.setBufferSize(blockSize); 
