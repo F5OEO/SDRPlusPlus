@@ -26,7 +26,8 @@ ConfigManager config;
 const std::vector<const char*> deviceWhiteList = {
     "PlutoSDR",
     "ANTSDR",
-    "LibreSDR"
+    "LibreSDR",
+    "Pluto+"
 };
 
 class PlutoSDRSourceModule : public ModuleManager::Instance {
@@ -512,21 +513,13 @@ private:
 
     static void worker(void* ctx) {
         PlutoSDRSourceModule* _this = (PlutoSDRSourceModule*)ctx;
-        #define MAX_BUFFER_PLUTO 64000000
+        #define MAX_BUFFER_PLUTO 64000000/2
         size_t buffersize= ((size_t)(_this->samplerate / 20.0f));
         size_t blockSize;
         size_t nbkernel;
-        if(buffersize>STREAM_BUFFER_SIZE) 
-        {
-            blockSize=STREAM_BUFFER_SIZE;
-            nbkernel=MAX_BUFFER_PLUTO/STREAM_BUFFER_SIZE;
-        }
-        else
-        {
-            blockSize=buffersize;
-            nbkernel=MAX_BUFFER_PLUTO/STREAM_BUFFER_SIZE;
-        }
         
+        blockSize=std::min<size_t>(STREAM_BUFFER_SIZE,buffersize);
+        nbkernel=std::min<int>(8, MAX_BUFFER_PLUTO/blockSize);
         
         // Acquire channels
         iio_channel* rx0_i = iio_device_find_channel(_this->dev, "voltage0", 0);
@@ -551,8 +544,8 @@ private:
         // Allocate buffer
         iio_device_set_kernel_buffers_count(_this->dev, nbkernel);
         
-       // flog::info("PlutoSDRSourceModule '{0}': Allocate {1} kernel buffers", _this->name, nbkernel);
-       // flog::info("PlutoSDRSourceModule '{0}': Allocate buffer size", _this->name, blockSize);
+        flog::info("PlutoSDRSourceModule '{0}': Allocate {1} kernel buffers", _this->name, nbkernel);
+        flog::info("PlutoSDRSourceModule '{0}': Allocate buffer size {1}", _this->name, blockSize);
         iio_buffer* rxbuf = iio_device_create_buffer(_this->dev, blockSize, false);
         // SetBUfferSize seems not working
         //_this->stream.setBufferSize(blockSize); 
