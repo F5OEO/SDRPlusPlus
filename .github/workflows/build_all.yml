@@ -52,6 +52,14 @@ jobs:
           working-directory: ${{runner.workspace}}
           run: 7z x rtl-sdr.zip ; rm "C:/Program Files/PothosSDR/bin/rtlsdr.dll" ; cp "rtl-sdr-64bit-20240623/librtlsdr.dll" "C:/Program Files/PothosSDR/bin/rtlsdr.dll"
 
+        - name: Download libiio version
+          run: Invoke-WebRequest -Uri "https://github.com/analogdevicesinc/libiio/releases/download/v0.26/Windows.zip" -OutFile ${{runner.workspace}}/libiio.zip
+
+        - name: Patch Pothos with newer libiio version
+          working-directory: ${{runner.workspace}}
+          run: 7z x libiio.zip ; rm "C:/Program Files/PothosSDR/bin/libiio.dll" ; cp "Windows-VS-2022-x64/libiio.dll" "C:/Program Files/PothosSDR/bin/libiio.dll"
+
+          
         - name: Download SDRPlay API
           run: Invoke-WebRequest -Uri "https://www.sdrpp.org/SDRplay.zip" -OutFile ${{runner.workspace}}/SDRplay.zip
 
