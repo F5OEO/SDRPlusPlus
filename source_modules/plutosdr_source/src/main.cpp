@@ -27,7 +27,9 @@ const std::vector<const char*> deviceWhiteList = {
     "PlutoSDR",
     "ANTSDR",
     "LibreSDR",
-    "Pluto+"
+    "Pluto+",
+    "ad9361",
+    "FISH"
 };
 
 class PlutoSDRSourceModule : public ModuleManager::Instance {
