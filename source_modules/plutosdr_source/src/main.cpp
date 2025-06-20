@@ -15,11 +15,9 @@
 
 SDRPP_MOD_INFO{
     /* Name:            */ "plutosdr_source",
-    /* Description:     */ "PlutoSDR source module for SDR++",
+    /* Description:     */ "PlutoSDR Tezuka source module for SDR++",
     /* Author:          */ "Ryzerth/F5OEO",
-    /* Version:         */ 0, 2, 1,
-    /* Author:          */ "Ryzerth/F5OEO",
-    /* Version:         */ 0, 2, 1,
+    /* Version:         */ 0, 2, 2,
     /* Max instances    */ 1
 };
 
