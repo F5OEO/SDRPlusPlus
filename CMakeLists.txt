@@ -19,6 +19,7 @@ option(OPT_BUILD_FOBOSSDR_SOURCE "Build FobosSDR Source Module (Dependencies: li
 option(OPT_BUILD_HACKRF_SOURCE "Build HackRF Source Module (Dependencies: libhackrf)" ON)
 option(OPT_BUILD_HAROGIC_SOURCE "Build Harogic Source Module (Dependencies: htra_api)" OFF)
 option(OPT_BUILD_HERMES_SOURCE "Build Hermes Source Module (no dependencies required)" ON)
+option(OPT_BUILD_HYDRASDR_SOURCE "Build HydraSDR Source Module (Dependencies: libhydrasdr)" OFF)
 option(OPT_BUILD_KCSDR_SOURCE "Build KCSDR Source Module (Dependencies: libkcsdr)" OFF)
 option(OPT_BUILD_LIMESDR_SOURCE "Build LimeSDR Source Module (Dependencies: liblimesuite)" OFF)
 option(OPT_BUILD_NETWORK_SOURCE "Build Network Source Module (no dependencies required)" ON)
@@ -53,6 +54,7 @@ option(OPT_BUILD_METEOR_DEMODULATOR "Build the meteor demodulator module (no dep
 option(OPT_BUILD_PAGER_DECODER "Build the pager decoder module (no dependencies required)" ON)
 option(OPT_BUILD_RADIO "Main audio modulation decoder (AM, FM, SSB, etc...)" ON)
 option(OPT_BUILD_RYFI_DECODER "RyFi data link decoder" OFF)
+option(OPT_BUILD_VOR_RECEIVER "VOR beacon receiver" OFF)
 option(OPT_BUILD_WEATHER_SAT_DECODER "Build the HRPT decoder module (no dependencies required)" OFF)
 
 # Misc
@@ -161,6 +163,10 @@ if (OPT_BUILD_HERMES_SOURCE)
 add_subdirectory("source_modules/hermes_source")
 endif (OPT_BUILD_HERMES_SOURCE)
 
+if (OPT_BUILD_HYDRASDR_SOURCE)
+add_subdirectory("source_modules/hydrasdr_source")
+endif (OPT_BUILD_HYDRASDR_SOURCE)
+
 if (OPT_BUILD_KCSDR_SOURCE)
 add_subdirectory("source_modules/kcsdr_source")
 endif (OPT_BUILD_KCSDR_SOURCE)
@@ -196,6 +202,10 @@ endif (OPT_BUILD_RTL_SDR_SOURCE)
 if (OPT_BUILD_RTL_TCP_SOURCE)
 add_subdirectory("source_modules/rtl_tcp_source")
 endif (OPT_BUILD_RTL_TCP_SOURCE)
+
+if (OPT_BUILD_SDDC_SOURCE)
+add_subdirectory("source_modules/sddc_source")
+endif (OPT_BUILD_SDDC_SOURCE)
 
 if (OPT_BUILD_SDRPP_SERVER_SOURCE)
 add_subdirectory("source_modules/sdrpp_server_source")
@@ -284,6 +294,10 @@ endif (OPT_BUILD_RADIO)
 if (OPT_BUILD_RYFI_DECODER)
 add_subdirectory("decoder_modules/ryfi_decoder")
 endif (OPT_BUILD_RYFI_DECODER)
+
+if (OPT_BUILD_VOR_RECEIVER)
+add_subdirectory("decoder_modules/vor_receiver")
+endif (OPT_BUILD_VOR_RECEIVER)
 
 if (OPT_BUILD_WEATHER_SAT_DECODER)
 add_subdirectory("decoder_modules/weather_sat_decoder")
