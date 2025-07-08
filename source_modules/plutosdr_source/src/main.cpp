@@ -38,7 +38,7 @@ public:
         this->name = name;
 
         // Define valid samplerates
-        for (int sr = 1000000; sr <= 61440000; sr += 500000) {
+        for (int sr = 2500000; sr <= 61440000; sr += 500000) {
             samplerates.define(sr, getBandwdithScaled(sr), sr);
         }
         samplerates.define(61440000, getBandwdithScaled(61440000.0), 61440000.0);
@@ -62,8 +62,6 @@ public:
         iqmodeselect.define("cs16", "CS16", "cs16");
         iqmodeselect.define("cs8", "CS8", "cs8");
 
-
-        
 
         // Enumerate devices
         refresh();
@@ -147,7 +145,7 @@ private:
             iio_context_info* info = ctxInfoList[i];
             std::string desc = iio_context_info_get_description(info);
             std::string duri = iio_context_info_get_uri(info);
-            
+
             // If the device is not a plutosdr, don't include it
             bool isPluto = false;
             for (const auto type : deviceWhiteList) {
@@ -175,10 +173,10 @@ private:
                 model = modelMatch[0];
                 int parenthPos = model.find('(');
                 if (parenthPos != std::string::npos) {
-                    model = model.substr(parenthPos+1);
+                    model = model.substr(parenthPos + 1);
                 }
             }
-            
+
             // Extract the serial
             std::string serial = "unknown";
             std::smatch serialMatch;
@@ -187,14 +185,14 @@ private:
             }
 
             // Construct the device name
-            //std::string devName = '(' + backend + ") " + model + " [" + serial + ']';
+            // std::string devName = '(' + backend + ") " + model + " [" + serial + ']';
             std::string devName = desc;
-
+            if (devices.keyExists(desc) || devices.nameExists(devName) || devices.valueExists(duri)) { continue; }
             // Save device
             devices.define(desc, devName, duri);
         }
         iio_context_info_list_free(ctxInfoList);
-        
+
         // Destroy scan context
         iio_scan_context_destroy(sctx);
 
@@ -229,8 +227,8 @@ private:
         bandwidth = 0;
         gmId = 0;
         gain = -1.0f;
-        rfId=0;
-        iqmodeId=0;
+        rfId = 0;
+        iqmodeId = 0;
 
         // Load device config
         config.acquire();
@@ -254,8 +252,8 @@ private:
             gain = config.conf["devices"][devDesc]["gain"];
             gain = std::clamp<int>(gain, -1.0f, 73.0f);
         }
-        
-         if (config.conf["devices"][devDesc].contains("rfselect")) {
+
+        if (config.conf["devices"][devDesc].contains("rfselect")) {
             // Select given gain mode or default if invalid
             std::string rf = config.conf["devices"][devDesc]["rfselect"];
             if (rfinputselect.keyExists(rf)) {
@@ -265,7 +263,7 @@ private:
                 rfId = 0;
             }
         }
-        
+
         config.release();
 
         // Update samplerate ID
@@ -327,7 +325,31 @@ private:
         }
 
         // Get RX channels
-        _this->rxChan = iio_device_find_channel(_this->phy, "voltage0", false);
+        long long Mode;
+        iio_device_debug_attr_read_longlong(_this->phy, "adi,2rx-2tx-mode-enable", &Mode);
+                
+        if (Mode == 1)
+                {  if(_this->rfId == 0) {
+                         flog::info("RXCHAN0 '{0}': iqmode: {1}!", _this->name, _this->rfId);
+                        _this->rxChan = iio_device_find_channel(_this->phy, "voltage0", false);
+                    }
+                    else {
+                        
+                         flog::info("RXCHAN0 '{0}': iqmode: {1}!", _this->name, _this->rfId);
+                        _this->rxChan = iio_device_find_channel(_this->phy, "voltage1", false);
+                    }
+         }
+         else
+         {
+                    uint32_t val = 0;
+                    iio_device_reg_read(_this->phy, 0x00000003, &val);
+                    val = (val & 0x3F) | ((_this->rfId + 1) << 6);
+                    iio_device_reg_write(_this->phy, 0x00000003, val);
+
+                    iio_device_debug_attr_write_longlong(_this->phy, "adi,1rx-1tx-mode-use-rx-num", _this->rfId + 1);
+            
+            _this->rxChan = iio_device_find_channel(_this->phy, "voltage0", false);
+         }
         _this->rxLO = iio_device_find_channel(_this->phy, "altvoltage0", true);
 
         // Enable RX LO and disable TX
@@ -336,15 +358,15 @@ private:
 
         // Configure RX channel
         iio_channel_attr_write(_this->rxChan, "rf_port_select", "A_BALANCED");
-        iio_channel_attr_write_longlong(_this->rxLO, "frequency", round(_this->freq));                              // Freq
-        //iio_channel_attr_write_bool(_this->rxChan, "filter_fir_en", true);   
-        iio_channel_attr_write_longlong(_this->rxChan, "sampling_frequency", round(_this->samplerate));             // Sample rate
-        iio_channel_attr_write_double(_this->rxChan, "hardwaregain", _this->gain);                                  // Gain
-        iio_channel_attr_write(_this->rxChan, "gain_control_mode", _this->gainModes.value(_this->gmId).c_str());    // Gain mode
+        iio_channel_attr_write_longlong(_this->rxLO, "frequency", round(_this->freq)); // Freq
+        // iio_channel_attr_write_bool(_this->rxChan, "filter_fir_en", true);
+        iio_channel_attr_write_longlong(_this->rxChan, "sampling_frequency", round(_this->samplerate));          // Sample rate
+        iio_channel_attr_write_double(_this->rxChan, "hardwaregain", _this->gain);                               // Gain
+        iio_channel_attr_write(_this->rxChan, "gain_control_mode", _this->gainModes.value(_this->gmId).c_str()); // Gain mode
         _this->setBandwidth(_this->bandwidth);
-        
+
         // Configure the ADC filters
-        ad9361_set_bb_rate(_this->phy, round(_this->samplerate));
+        // ad9361_set_bb_rate(_this->phy, round(_this->samplerate));
 
         // Start worker thread
         _this->running = true;
@@ -430,11 +452,13 @@ private:
             }
         }
 
+
         SmGui::LeftLabel("Gain Mode");
         SmGui::FillWidth();
         SmGui::ForceSync();
         if (SmGui::Combo(CONCAT("##_pluto_gainmode_select_", _this->name), &_this->gmId, _this->gainModes.txt)) {
             if (_this->running) {
+                 
                 iio_channel_attr_write(_this->rxChan, "gain_control_mode", _this->gainModes.value(_this->gmId).c_str());
             }
             if (!_this->devDesc.empty()) {
@@ -449,6 +473,7 @@ private:
         SmGui::FillWidth();
         if (SmGui::SliderFloatWithSteps(CONCAT("##_pluto_gain__", _this->name), &_this->gain, -1.0f, 73.0f, 1.0f, SmGui::FMT_STR_FLOAT_DB_NO_DECIMAL)) {
             if (_this->running) {
+
                 iio_channel_attr_write_double(_this->rxChan, "hardwaregain", _this->gain);
             }
             if (!_this->devDesc.empty()) {
@@ -458,47 +483,73 @@ private:
             }
         }
         if (_this->gmId) { SmGui::EndDisabled(); }
-        
+        if (_this->running) {   SmGui::BeginDisabled(); }
         SmGui::LeftLabel("RF input");
+        
         SmGui::FillWidth();
         SmGui::ForceSync();
         if (SmGui::Combo(CONCAT("##_pluto_rfinput_select_", _this->name), &_this->rfId, _this->rfinputselect.txt)) {
-            if (_this->running) {
-                 uint32_t val = 0;
-         
-         iio_device_reg_read(_this->phy, 0x00000003, &val);
-         val = (val &0x3F)| ((_this->rfId+1)<<6);
-         iio_device_reg_write(_this->phy, 0x00000003, val);
-         
-         iio_device_debug_attr_write_longlong(_this->phy,"adi,1rx-1tx-mode-use-rx-num",_this->rfId+1);
-         // WorkAround because ad9361 driver doesnt reflect well rx change with gain
-         //iio_channel_attr_write(iio_device_find_channel(_this->phy, "voltage0", false), "gain_control_mode", "fast_attack");
+            
+            if (_this->running)
+             {
+                uint32_t val = 0;
+
+                long long Mode;
+                iio_device_debug_attr_read_longlong(_this->phy, "adi,2rx-2tx-mode-enable", &Mode);
+                
+                if (Mode == 0) // Only if r11t
+                {
+                    iio_device_reg_read(_this->phy, 0x00000003, &val);
+                    val = (val & 0x3F) | ((_this->rfId + 1) << 6);
+                    iio_device_reg_write(_this->phy, 0x00000003, val);
+
+                    iio_device_debug_attr_write_longlong(_this->phy, "adi,1rx-1tx-mode-use-rx-num", _this->rfId + 1);
+                }
+                else {
+                    
+                }
+                // WorkAround because ad9361 driver doesnt reflect well rx change with gain
+                // iio_channel_attr_write(iio_device_find_channel(_this->phy, "voltage0", false), "gain_control_mode", "fast_attack");
             }
+            
             if (!_this->devDesc.empty()) {
                 config.acquire();
                 config.conf["devices"][_this->devDesc]["rfinput"] = _this->rfinputselect.key(_this->rfId);
-                //config.conf["devices"][_this->devDesc]["rfinputselect"] = _this->rfinputselect.key(_this->gmId);
+                // config.conf["devices"][_this->devDesc]["rfinputselect"] = _this->rfinputselect.key(_this->gmId);
                 config.release(true);
             }
+            
         }
+        if (_this->running) { SmGui::EndDisabled(); }
         if (_this->running) { SmGui::BeginDisabled(); }
         SmGui::LeftLabel("IQ Mode");
         SmGui::FillWidth();
         SmGui::ForceSync();
         if (SmGui::Combo(CONCAT("##_pluto_iqmode_select_", _this->name), &_this->iqmodeId, _this->iqmodeselect.txt)) {
             if (_this->running) {
-                //iio_channel_attr_write(_this->rxChan, "gain_control_mode", _this->rfinputselect.value(_this->gmId).c_str());
+                // iio_channel_attr_write(_this->rxChan, "gain_control_mode", _this->rfinputselect.value(_this->gmId).c_str());
             }
             if (!_this->devDesc.empty()) {
                 config.acquire();
                 config.conf["devices"][_this->devDesc]["iqmode"] = _this->iqmodeselect.key(_this->iqmodeId);
-                
+
                 config.release(true);
             }
         }
-         if (_this->running) { SmGui::EndDisabled(); }
-        
-        
+        if (_this->running) { SmGui::EndDisabled(); }
+        if (_this->running)
+        {
+            if(_this->underflow==1)
+                SmGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Buffer : underflow");
+            else
+                SmGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Buffer : nominal");  
+            if(_this->overgain==0)    
+                SmGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Gain : OK");
+            else
+                SmGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Gain : overdrive");
+        }    
+        else
+            SmGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Buffer : nominal");
     }
 
     void setBandwidth(int bw) {
@@ -512,42 +563,49 @@ private:
 
     static void worker(void* ctx) {
         PlutoSDRSourceModule* _this = (PlutoSDRSourceModule*)ctx;
-        #define MAX_BUFFER_PLUTO 64000000/2
-        size_t buffersize= ((size_t)(_this->samplerate / 20.0f));
+#define MAX_BUFFER_PLUTO 64000000 / 2
+        size_t buffersize = ((size_t)(_this->samplerate / 20.0f));
         size_t blockSize;
         size_t nbkernel;
-        
-        blockSize=std::min<size_t>(STREAM_BUFFER_SIZE,buffersize);
-        nbkernel=std::min<int>(8, MAX_BUFFER_PLUTO/blockSize);
-        
+
+        blockSize = std::min<size_t>(STREAM_BUFFER_SIZE, buffersize);
+        nbkernel = std::min<int>(8, MAX_BUFFER_PLUTO / blockSize);
+
         // Acquire channels
         iio_channel* rx0_i = iio_device_find_channel(_this->dev, "voltage0", 0);
         iio_channel* rx0_q = iio_device_find_channel(_this->dev, "voltage1", 0);
+
+        long long Mode;
+        iio_device_debug_attr_read_longlong(_this->phy, "adi,2rx-2tx-mode-enable", &Mode);
+         flog::info("Failed to acquire RX channels");
+        if ((_this->rfId == 1) && (Mode == 1)) {
+            rx0_i = iio_device_find_channel(_this->dev, "voltage2", 0);
+            rx0_q = iio_device_find_channel(_this->dev, "voltage3", 0);
+        }
+
         if (!rx0_i || !rx0_q) {
             flog::error("Failed to acquire RX channels");
             return;
         }
 
-        // Start streaming
-        if(_this->iqmodeId==0)
-        {
+
+        if (_this->iqmodeId == 0) {
             iio_channel_enable(rx0_i);
             iio_channel_enable(rx0_q);
         }
-        else
-        {
+        else {
             iio_channel_enable(rx0_i);
             iio_channel_disable(rx0_q);
         }
-        
+
         // Allocate buffer
         iio_device_set_kernel_buffers_count(_this->dev, nbkernel);
-        
+
         flog::info("PlutoSDRSourceModule '{0}': Allocate {1} kernel buffers", _this->name, nbkernel);
         flog::info("PlutoSDRSourceModule '{0}': Allocate buffer size {1}", _this->name, blockSize);
         iio_buffer* rxbuf = iio_device_create_buffer(_this->dev, blockSize, false);
         // SetBUfferSize seems not working
-        //_this->stream.setBufferSize(blockSize); 
+        //_this->stream.setBufferSize(blockSize);
         if (!rxbuf) {
             flog::error("Could not create RX buffer");
             return;
@@ -555,48 +613,54 @@ private:
 
         uint32_t val = 0;
         iio_device_reg_read(_this->dev, 0x80000088, &val);
-        iio_device_reg_write(_this->dev, 0x80000088, val); //Reset underflow state
+        iio_device_reg_write(_this->dev, 0x80000088, val); // Reset underflow state
+        iio_device_reg_read(_this->dev, 0xC1200000, &val);
+        flog::info("Plutosdr '{0}': Decim {1}", _this->name, val);
+
         // Receive loop
         while (true) {
             // Read samples
-            ssize_t BufferRead= iio_buffer_refill(rxbuf) ;
+            ssize_t BufferRead = iio_buffer_refill(rxbuf);
             iio_device_reg_read(_this->dev, 0x80000088, &val);
-            if (val & 4)
-            {
+            if (val & 4) {
                 flog::warn("PlutoSDRSourceModule '{0}': Underflow!", _this->name);
-                
+                _this->underflow=1;
                 iio_device_reg_write(_this->dev, 0x80000088, val);
             }
-            if(_this->iqmodeId==0)
-            {   
-                int16_t* buf = (int16_t*)iio_buffer_start(rxbuf);
-                if (buf)
-                {
-                    volk_16i_s32f_convert_32f((float*)_this->stream.writeBuf, buf, 2048.0f,blockSize*2/* BufferRead/(2*sizeof(int16_t))*/);
-                     if (!_this->stream.swap(blockSize)) { break; };
-                }    
-            }    
             else
-            {
-               
-                int8_t* buf = (int8_t*)iio_buffer_start(rxbuf);
-                if (buf)
-                {
-                    volk_8i_s32f_convert_32f((float*)_this->stream.writeBuf,  buf, 128.0f, blockSize*2);
-                     if (!_this->stream.swap(blockSize)) { break; };
-                }    
-            }    
+                _this->underflow=0;
 
+            if ((_this->rfId == 1) && (Mode == 1))    
+                iio_device_reg_read(_this->phy, 0x0000005F, &val);    
+            else
+                iio_device_reg_read(_this->phy, 0x0000005E, &val);    
+            _this->overgain=val&1;
+            if(_this->overgain)
+                flog::warn("PlutoSDRSourceModule '{0}': Overdive!", _this->name);
+            if (_this->iqmodeId == 0) {
+                int16_t* buf = (int16_t*)iio_buffer_start(rxbuf);
+                if (buf) {
+                    volk_16i_s32f_convert_32f((float*)_this->stream.writeBuf, buf, 2048.0f, blockSize * 2 /* BufferRead/(2*sizeof(int16_t))*/);
+                    if (!_this->stream.swap(blockSize)) { break; };
+                }
+            }
+            else {
+
+                int8_t* buf = (int8_t*)iio_buffer_start(rxbuf);
+                if (buf) {
+                    volk_8i_s32f_convert_32f((float*)_this->stream.writeBuf, buf, 128.0f, blockSize * 2);
+                    if (!_this->stream.swap(blockSize)) { break; };
+                }
+            }
         }
 
         // Stop streaming
         iio_channel_disable(rx0_i);
         iio_channel_disable(rx0_q);
-        //flog::info("PlutoSDRSourceModule '{0}': iqmode: {1}!", _this->name, _this->iqmodeId);
-        // Free buffer
+        // flog::info("PlutoSDRSourceModule '{0}': iqmode: {1}!", _this->name, _this->iqmodeId);
+        //  Free buffer
         iio_buffer_destroy(rxbuf);
-        
-    }   
+    }
 
     std::string name;
     bool enabled = true;
@@ -622,8 +686,10 @@ private:
     int srId = 0;
     int bwId = 0;
     int gmId = 0;
-    int rfId= 0;
-    int iqmodeId=0;
+    int rfId = 0;
+    int iqmodeId = 0;
+    int underflow=0;
+    int overgain=0;
 
     OptionList<std::string, std::string> devices;
     OptionList<int, double> samplerates;
