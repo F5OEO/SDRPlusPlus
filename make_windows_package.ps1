@@ -43,6 +43,8 @@ cp 'C:/Program Files/PothosSDR/bin/perseus-sdr.dll' sdrpp_windows_x64/
 cp $build_dir/source_modules/plutosdr_source/Release/plutosdr_source.dll sdrpp_windows_x64/modules/
 cp 'C:/Program Files/PothosSDR/bin/libiio.dll' sdrpp_windows_x64/
 cp 'C:/Program Files/PothosSDR/bin/libad9361.dll' sdrpp_windows_x64/
+cp 'C:/Program Files/PothosSDR/bin/libxml2.dll' sdrpp_windows_x64/
+cp 'C:/Program Files/PothosSDR/bin/libserialport-0.dll' sdrpp_windows_x64/
 
 cp $build_dir/source_modules/rfnm_source/Release/rfnm_source.dll sdrpp_windows_x64/modules/
 cp 'C:/Program Files/RFNM/bin/rfnm.dll' sdrpp_windows_x64/
